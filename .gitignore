@@ -121,7 +121,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+PSITExamCellBackend/.env
 .venv
 env/
 venv/
