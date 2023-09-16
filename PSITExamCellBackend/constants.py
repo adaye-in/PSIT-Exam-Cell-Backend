@@ -1,0 +1,13 @@
+STATUS_OK = 200
+SUCCESSFUL = 'Successful'
+WRONG_DATA = "Wrong format or type passed in payload"
+DATA_ERROR = 'some data error occurred while reading the file : '
+TYPE_ERROR = 'some type error occurred while reading the file : '
+STATUS_FAILED = 400
+ACCESS_DENIED = 'Access denied'
+INVALID_TOKEN = 'Invalid token'
+LOGIN_SUCCESSFUL = "Login successful"
+INVALID_CREDENTIAL = "Invalid credential"
+UNPROCESSABLE_ENTITY = 'unprocessable payload'
+USER_NOT_EXISTS = "user does not exists"
+INTERNAL_ERROR = 500
