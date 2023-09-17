@@ -49,8 +49,9 @@ class AdminViewSet(viewsets.ViewSet):
             stored_password = admin_obj.password.encode('utf-8')
             if not bcrypt.checkpw(request_data.get("password").encode('utf-8'), stored_password):
                 return response_fun(0, INVALID_CREDENTIAL)
+            # Payload For JWT AUTH
             payload = {
-                "pk": admin_obj.id,
+                "user_id": admin_obj.id,
                 "email_address": admin_obj.email_address
             }
 

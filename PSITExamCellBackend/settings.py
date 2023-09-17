@@ -40,8 +40,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
 
     'auth_app',  # app
+    'collageInfo',  # app
 ]
 
 MIDDLEWARE = [
@@ -72,6 +74,13 @@ TEMPLATES = [
         },
     },
 ]
+
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': [
+#         'PSITExamCellBackend.JWTMiddleware.JWTAuthentication',
+#     ],
+# }
+
 
 WSGI_APPLICATION = 'PSITExamCellBackend.wsgi.application'
 
