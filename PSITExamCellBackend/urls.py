@@ -19,5 +19,6 @@ from django.urls import path, include
 
 urlpatterns = [
     path('djadmin/', admin.site.urls),
-    path('auth/', include("auth_app.urls"))
+    path('auth/', include("auth_app.urls")),
+    path('collageinfo/', include("collageInfo.urls"))
 ]

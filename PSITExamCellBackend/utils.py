@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import jwt
+from rest_framework import status
 from rest_framework.response import Response
 
 from .constants import *
@@ -9,12 +10,18 @@ from .constants import *
 # Response function
 def response_fun(*args):
     if args[0] == 1:
-        args[1]['status_code'] = STATUS_OK
-        return Response({'status': args[0], 'responseData': args[1]},
-                        status=STATUS_OK)
+        # args[1]['status_code'] = STATUS_OK
+        return Response({'status': args[0], 'responseData': args[1], 'status_code': status.HTTP_200_OK, 'error': False})
     else:
-        return Response({'status': args[0], 'error': {'message': args[1],
-                                                      'status_code': STATUS_FAILED}}, status=STATUS_OK)
+        return Response({'status': args[0], 'error': True, 'message': args[1], 'status_code': STATUS_FAILED})
+
+
+def response_fun_dict(*args):
+    if args[0] == 1:
+        args[1]['status_code'] = status.HTTP_200_OK
+        return {'status': args[0], 'responseData': args[1], 'status_code': status.HTTP_200_OK, 'error': False}
+    else:
+        return {'status': args[0], 'error': True, 'message': args[1], 'status_code': STATUS_FAILED}
 
 
 # Encode jwt token
