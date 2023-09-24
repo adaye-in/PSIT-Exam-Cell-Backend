@@ -6,6 +6,7 @@ from rest_framework.parsers import FileUploadParser
 from PSITExamCellBackend.JWTMiddleware import JWTAuthentication
 from PSITExamCellBackend.utils import response_fun
 from auth_app.models import AdminModel
+from .models import StudentModel
 from .serializer import StudentModelSerializer
 
 
@@ -100,9 +101,64 @@ class StudentViewSets(viewsets.ViewSet):
             }
             students_data.append(student_data)
 
-        serialize = StudentModelSerializer(data=students_data, many=True)
-        if serialize.is_valid():
-            serialize.save()
+        serializer = StudentModelSerializer(data=students_data, many=True)
+        if serializer.is_valid():
+            serializer.save()
             return response_fun(1, "Students Added Successfully")
         else:
-            return response_fun(0, serialize.errors)
+            return response_fun(0, serializer.errors)
+
+    @action(detail=False, methods=['post'])
+    def createStudent(self, request):
+        admin_user = self.authenticate_user(request)
+        if not admin_user:
+            return response_fun(0, "User Not Found")
+
+        sectionId = request.data.get('section_id', None)
+        branchId = request.data.get('branch_id', None)
+
+        if not sectionId or not branchId:
+            return response_fun(0, "Section/Branch Id Not Found")
+
+        branchInstance, sectionInstance, Error = self.get_section_and_branch(admin_user, branchId, sectionId)
+        if Error:
+            response_fun(0, "Branch/Section Not Found")
+
+        roll_number = request.data.get('roll_number', None)
+        name = request.data.get('name', None)
+
+        if not (roll_number or name):
+            return response_fun(0, "RollNumber or Name not Found")
+
+        student_data = {
+            'roll_number': roll_number,
+            'name': name,
+            'section': sectionInstance.pk,
+            'user': admin_user.pk,
+            'branch': branchInstance.pk
+        }
+
+        serializer = StudentModelSerializer(data=student_data)
+        if serializer.is_valid():
+            serializer.save()
+            return response_fun(1, "Students Added Successfully")
+        else:
+            return response_fun(0, serializer.errors)
+
+    @action(detail=False, methods=['post'])
+    def deleteStudent(self, request):
+        admin_user = self.authenticate_user(request)
+        if admin_user is None:
+            return response_fun(0, "User Not Found")
+
+        studentId = request.data.get('studentId', None)
+        if not studentId:
+            return response_fun(0, "Student Id Not Found")
+
+        try:
+            studentInstance = admin_user.student_studentmodel_related.get(id=studentId)
+        except StudentModel.DoesNotExist:
+            return response_fun(0, "Student Not Found")
+
+        studentInstance.delete()
+        return response_fun(1, "Student Deleted Successfully")
