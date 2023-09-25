@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'auth_app',  # app
     'collageInfo',  # app
     'student',  # app
+    'adminsession',  # app
+    'seatingplan',  # app
 ]
 
 MIDDLEWARE = [

@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.exceptions import APIException
 
 from PSITExamCellBackend.utils import response_fun_dict
+from auth_app.models import AdminModel
 
 
 class AuthenticationFailedStatusOk(APIException):
@@ -29,9 +30,20 @@ def process_jwt_token(token):
 
 
 class JWTAuthentication(authentication.BaseAuthentication):
+    @staticmethod
+    def authenticate_user(request):
+        jwt_obj = JWTAuthentication().authenticate(request)
+        admin_pk = jwt_obj['user_id']
+
+        try:
+            admin_user = AdminModel.objects.get(pk=admin_pk)
+        except AdminModel.DoesNotExist:
+            return None  # Return None to indicate user not found
+        return admin_user
+
     def authenticate(self, request):
         # Get the JWT token from the request headers.
-        token = request.META.get('HTTP_TOKEN')
+        token = request.META.get('HTTP_AUTHORIZATION')
         if not token:
             raise AuthenticationFailedStatusOk(detail=response_fun_dict(0, 'Token Not Found'))
         try:

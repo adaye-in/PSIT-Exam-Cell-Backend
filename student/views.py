@@ -7,7 +7,7 @@ from PSITExamCellBackend.JWTMiddleware import JWTAuthentication
 from PSITExamCellBackend.utils import response_fun
 from auth_app.models import AdminModel
 from .models import StudentModel
-from .serializer import StudentModelSerializer
+from .serializer import StudentModelSerializer, StudentModelSerializerResponse
 
 
 class StudentViewSets(viewsets.ViewSet):
@@ -162,3 +162,26 @@ class StudentViewSets(viewsets.ViewSet):
 
         studentInstance.delete()
         return response_fun(1, "Student Deleted Successfully")
+
+    @action(detail=False, methods=['post'])
+    def getStudents(self, request):
+        admin_user = self.authenticate_user(request)
+        if not admin_user:
+            return response_fun(0, "User Not Found")
+
+        sectionId = request.data.get('section_id', None)
+        branchId = request.data.get('branch_id', None)
+
+        if not sectionId or not branchId:
+            return response_fun(0, "Section/Branch Id Not Found")
+
+        branchInstance, sectionInstance, Error = self.get_section_and_branch(admin_user, branchId, sectionId)
+        if Error:
+            response_fun(0, "Branch/Section Not Found")
+
+        data_list = admin_user.student_studentmodel_related.filter(
+            branch_id=branchId,
+            section_id=sectionId
+        )
+        serializer = StudentModelSerializerResponse(data_list, many=True)
+        return response_fun(1, serializer.data)
