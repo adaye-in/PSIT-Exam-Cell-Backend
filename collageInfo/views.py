@@ -49,7 +49,7 @@ class BranchViewSet(viewsets.ViewSet):
         # make sure that related field is in lowercase
         branches = admin_user.collageinfo_branchmodel_related.all()
         serializer = BranchModelSerializerResponse(branches, many=True)
-        return response_fun(0, serializer.data)
+        return response_fun(1, serializer.data)
 
     @action(detail=False, methods=['post'])
     def deleteBranch(self, request):
@@ -128,7 +128,7 @@ class SectionViewSet(viewsets.ViewSet):
         # make sure that related field is in lowercase
         sections = admin_user.collageinfo_sectionmodel_related.all()
         serializer = SectionModelSerializerResponse(sections, many=True)
-        return response_fun(0, serializer.data)
+        return response_fun(1, serializer.data)
 
     @action(detail=False, methods=['post'])
     def deleteSections(self, request):

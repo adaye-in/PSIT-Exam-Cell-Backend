@@ -25,10 +25,11 @@ class SectionModelSerializer(serializers.ModelSerializer):
 
 class SectionModelSerializerResponse(serializers.ModelSerializer):
     section_id = serializers.IntegerField(source='id')
+    branch_name = serializers.CharField(source='branch.branch_name', read_only=True)
 
     class Meta:
         model = SectionModel
-        fields = ['section_id', 'branch_id', 'section_name', 'present_year', 'created_on']
+        fields = ['section_id', 'branch_id', 'section_name', 'present_year', 'created_on', 'branch_name']
 
 
 class RoomModelSerializer(serializers.ModelSerializer):
