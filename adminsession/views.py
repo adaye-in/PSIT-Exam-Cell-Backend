@@ -10,7 +10,8 @@ from PSITExamCellBackend.utils import response_fun
 from collageInfo.serializer import RoomModelSerializer
 from seatingplan.serializers import SeatingPlanSerializer, RoomSeatingSerializer
 from student.serializer import StudentListSerializerSeatingPlan
-from .serializers import SessionModelSerializer
+from .models import SessionModel
+from .serializers import SessionModelSerializer, SessionModelSerializerResponse
 
 
 class SessionViewSet(viewsets.ViewSet):
@@ -32,7 +33,6 @@ class SessionViewSet(viewsets.ViewSet):
         [
             {
                 branch: id,
-                branch_name = CSE,
                 years = [1,2,3]
             },
         ]
@@ -66,6 +66,13 @@ class SessionViewSet(viewsets.ViewSet):
 
                     if not (0 < min_yrs and max_yrs <= yr):
                         return response_fun(0, "Years Found Invalid")
+
+                session_obj = SessionModel.objects.filter(
+                    session_name=session_name
+                ).first()
+
+                if not session_obj:
+                    return response_fun(0, "Session Name Not Unique")
 
                 session_data = {
                     'user': admin_user.pk,
@@ -136,3 +143,14 @@ class SessionViewSet(viewsets.ViewSet):
 
         session_obj.delete()
         return response_fun(1, "Session Deleted Successfully")
+
+    @action(detail=False, methods=['post'])
+    def getSession(self, request):
+        admin_user = JWTAuthentication.authenticate_user(request)
+        if not admin_user:
+            return response_fun(0, "User Not Found")
+
+        session_obj = admin_user.adminsession_sessionmodel_related.all()
+        serializer = SessionModelSerializerResponse(session_obj, many=True)
+
+        return response_fun(1, serializer.data)
