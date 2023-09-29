@@ -1,5 +1,3 @@
-from abc import ABC, ABCMeta
-
 from rest_framework import serializers
 
 from .models import StudentModel
@@ -20,8 +18,9 @@ class StudentModelSerializer(serializers.ModelSerializer):
 
 
 class StudentListSerializerSeatingPlan(serializers.ModelSerializer):
-    user_id = serializers.IntegerField(source='user.id')
-    branch_id = serializers.IntegerField(source='branch.id')
+    user = serializers.IntegerField(source='user.id')
+    branch = serializers.IntegerField(source='branch.id')
+    section = serializers.IntegerField(source='section.id')
     student_id = serializers.IntegerField(source='id')
     student_rn = serializers.IntegerField(source='roll_number')
     student_name = serializers.CharField(source='name')
@@ -31,8 +30,9 @@ class StudentListSerializerSeatingPlan(serializers.ModelSerializer):
     class Meta:
         model = StudentModel
         fields = [
-            'user_id',
-            'branch_id',
+            'user',
+            'section',
+            'branch',
             'student_id',
             'student_rn',
             'student_name',

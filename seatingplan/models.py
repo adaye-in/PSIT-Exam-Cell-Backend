@@ -25,10 +25,13 @@ class SeatingPlanModel(models.Model):
 
 class RoomSeatingModel(models.Model):
     user = models.ForeignKey(AdminModel, on_delete=models.CASCADE, related_name='%(app_label)s_%(class)s_related')
+    session = models.ForeignKey(SessionModel, on_delete=models.CASCADE, related_name='%(app_label)s_%(class)s_related')
     room_number = models.CharField(max_length=10)
     room_rows = models.PositiveIntegerField()
     room_columns = models.PositiveIntegerField()
     room_breakout = models.CharField(max_length=32)
+    room_type = models.CharField(max_length=10, null=True, blank=True)
+    room_remark = models.TextField(null=True, blank=True)
     seating_map = models.JSONField(null=True)
     marked = models.BooleanField(default=False)
 
