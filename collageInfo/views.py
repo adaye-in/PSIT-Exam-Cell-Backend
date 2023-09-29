@@ -199,7 +199,7 @@ class RoomViewSet(viewsets.ViewSet):
         serializer = RoomModelSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
-            return response_fun(1, {"message": "Section created successfully"})
+            return response_fun(1, {"message": "Room created successfully"})
         else:
             return response_fun(0, {"message": "Invalid data", "errors": serializer.errors})
 

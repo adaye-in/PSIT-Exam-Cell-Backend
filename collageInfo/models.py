@@ -30,6 +30,8 @@ class RoomModel(models.Model):
     room_rows = models.PositiveIntegerField()
     room_columns = models.PositiveIntegerField()
     room_breakout = models.CharField(max_length=32)
+    room_type = models.CharField(max_length=10, null=True, blank=True)
+    room_remark = models.TextField(null=True, blank=True)
     created_on = models.DateTimeField(auto_now_add=True)
 
     class Meta:

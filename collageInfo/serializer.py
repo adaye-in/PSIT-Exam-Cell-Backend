@@ -43,4 +43,5 @@ class RoomModelSerializerResponse(serializers.ModelSerializer):
 
     class Meta:
         model = RoomModel
-        fields = ['room_id', 'room_number', 'room_rows', 'room_columns', 'created_on', 'room_breakout']
+        fields = ['room_id', 'room_number', 'room_rows', 'room_columns', 'created_on', 'room_breakout', 'room_type',
+                  'room_remark']

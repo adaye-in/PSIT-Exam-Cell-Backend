@@ -128,6 +128,17 @@ files = [
 ]
 
 [[package]]
+name = "futures"
+version = "3.0.5"
+description = "Backport of the concurrent.futures package from Python 3.2"
+optional = false
+python-versions = "*"
+files = [
+    {file = "futures-3.0.5-py2-none-any.whl", hash = "sha256:f7f16b6bf9653a918a03f1f2c2d62aac0cd64b1bc088e93ea279517f6b61120b"},
+    {file = "futures-3.0.5.tar.gz", hash = "sha256:0542525145d5afc984c88f914a0c85c77527f65946617edb5274f72406f981df"},
+]
+
+[[package]]
 name = "numpy"
 version = "1.25.2"
 description = "Fundamental package for array computing in Python"
@@ -440,4 +451,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "0e3c144b51feca55f270d5f9a9775bcbfa2132acbdd90654b00cd1d096abd35b"
+content-hash = "cf55b41c67591b5553c62565e92c5061f11deb839e782cb4037bec0859d9f234"
