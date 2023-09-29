@@ -131,9 +131,8 @@ class SessionViewSet(viewsets.ViewSet):
             id=sessionId
         ).first()
 
-        if session_obj is None:
-            response_fun(0, "Session Object Not Found")
+        if not session_obj:
+            return response_fun(0, "Session Object Not Found")
 
         session_obj.delete()
-
         return response_fun(1, "Session Deleted Successfully")
