@@ -10,7 +10,6 @@ from PSITExamCellBackend.utils import response_fun
 from collageInfo.serializer import RoomModelSerializer
 from seatingplan.serializers import SeatingPlanSerializer, RoomSeatingSerializer
 from student.serializer import StudentListSerializerSeatingPlan
-from .models import SessionModel
 from .serializers import SessionModelSerializer, SessionModelSerializerResponse
 
 
@@ -66,13 +65,6 @@ class SessionViewSet(viewsets.ViewSet):
 
                     if not (0 < min_yrs and max_yrs <= yr):
                         return response_fun(0, "Years Found Invalid")
-
-                session_obj = SessionModel.objects.filter(
-                    session_name=session_name
-                ).first()
-
-                if not session_obj:
-                    return response_fun(0, "Session Name Not Unique")
 
                 session_data = {
                     'user': admin_user.pk,

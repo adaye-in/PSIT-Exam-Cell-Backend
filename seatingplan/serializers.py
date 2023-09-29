@@ -19,3 +19,22 @@ class RoomSeatingSerializer(serializers.ModelSerializer):
     class Meta:
         model = RoomSeatingModel
         fields = '__all__'
+
+
+class RoomSeatingSerializerResponse(serializers.ModelSerializer):
+
+    def __init__(self, *args, **kwargs):
+        sm = kwargs.pop('sm', 0)
+        super(RoomSeatingSerializerResponse, self).__init__(*args, **kwargs)
+
+        if sm == 0:
+            exclude_fields = ['seating_map', 'user']
+        else:
+            exclude_fields = ['user']
+
+        for field_name in exclude_fields:
+            self.fields.pop(field_name)
+
+    class Meta:
+        model = RoomSeatingModel
+        fields = '__all__'
