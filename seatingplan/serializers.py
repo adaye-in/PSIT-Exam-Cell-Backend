@@ -38,3 +38,13 @@ class RoomSeatingSerializerResponse(serializers.ModelSerializer):
     class Meta:
         model = RoomSeatingModel
         fields = '__all__'
+
+
+class SessionStudentSerializer(serializers.ModelSerializer):
+    student_id = serializers.IntegerField(source='id')
+    name = serializers.CharField(source='student_name')
+    roll_number = serializers.IntegerField(source='student_rn')
+
+    class Meta:
+        model = SeatingPlanModel
+        fields = ['student_id', 'name', 'roll_number']

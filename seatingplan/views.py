@@ -3,11 +3,55 @@ from rest_framework.decorators import action
 
 from PSITExamCellBackend.JWTMiddleware import JWTAuthentication
 from PSITExamCellBackend.utils import response_fun
+from collageInfo.models import BranchModel
+from collageInfo.serializer import BranchModelSerializerResponse
 from .serializers import *
-from .models import SeatingPlanModel
 
 
 class sessionRoomViewSets(viewsets.ViewSet):
+
+    @action(detail=False, methods=['post'])
+    def getSessionStudents(self, request):
+        admin_user = JWTAuthentication.authenticate_user(request)
+        if not admin_user:
+            return response_fun(0, "User Not Found")
+
+        branch_id = request.data.get('branch_id', None)
+        section_id = request.data.get('section_id', None)
+        session_id = request.data.get('session_id', None)
+
+        if not branch_id or not section_id or not session_id:
+            return response_fun(0, "Branch/Section/Session Not Found")
+
+        student_obj = admin_user.seatingplan_seatingplanmodel_related.filter(
+            branch_id=branch_id,
+            section_id=section_id,
+            session_id=session_id
+        )
+        serializer = SessionStudentSerializer(student_obj, many=True)
+        return response_fun(1, serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def getSessionBranch(self, request):
+        admin_user = JWTAuthentication.authenticate_user(request)
+        if not admin_user:
+            return response_fun(0, "User Not Found")
+
+        session_id = request.data.get('session_id', None)
+        if not session_id:
+            return response_fun(0, "Session Id Not Found")
+
+        branch_obj = admin_user.seatingplan_seatingplanmodel_related.filter(
+            session_id=session_id
+        ).values('branch_id').distinct()
+
+        branch_ids = [x['branch_id'] for x in list(branch_obj)]
+
+        branch_obj = BranchModel.objects.filter(
+            pk__in=branch_ids
+        )
+        serializer = BranchModelSerializerResponse(branch_obj, many=True)
+        return response_fun(0, serializer.data)
 
     @action(detail=False, methods=['post'])
     def getSessionRooms(self, request):
@@ -47,9 +91,11 @@ class seatingplanViewSets(viewsets.ViewSet):
         student_id_list = []
         for arr in seatingplan:
             for oneStudent in arr:
-                student_id_list.append(oneStudent['student_id'])
+                if oneStudent.get('student_id', None):
+                    student_id_list.append(oneStudent.get('student_id'))
 
-        obj = SeatingPlanModel.objects.filter(
+        print(student_id_list)
+        obj = admin_user.seatingplan_seatingplanmodel_related.filter(
             pk__in=student_id_list
         )
         print(obj)
