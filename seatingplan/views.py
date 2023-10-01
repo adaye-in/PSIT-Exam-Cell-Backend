@@ -51,12 +51,27 @@ class sessionRoomViewSets(viewsets.ViewSet):
             pk__in=branch_ids
         )
         serializer = BranchModelSerializerResponse(branch_obj, many=True)
-        return response_fun(0, serializer.data)
+        return response_fun(1, serializer.data)
 
     @action(detail=False, methods=['post'])
     def getSessionRooms(self, request):
         admin_user = JWTAuthentication.authenticate_user(request)
+
+        val_arr = [0, 1, '1', '0']
         sm = request.GET.get('sm', 0)  # sm=SeatingMap
+        marked = request.GET.get('marked', 0)
+
+        if sm not in val_arr and marked not in val_arr:
+            return response_fun(0, "Invalid Get Params")
+
+        sm = int(sm)
+        marked = int(marked)
+
+        if marked == 0:
+            marked = False
+        elif marked == 1:
+            marked = True
+
         if not admin_user:
             return response_fun(0, "User Not Found")
 
@@ -64,12 +79,19 @@ class sessionRoomViewSets(viewsets.ViewSet):
         if not session_id:
             return response_fun(0, "Session Id Not Found")
 
+        session_obj = admin_user.adminsession_sessionmodel_related.filter(
+            pk=session_id
+        ).first()
+
+        if not session_obj:
+            return response_fun(0, "Session Not Found")
+
         session_room = admin_user.seatingplan_roomseatingmodel_related.filter(
             session=session_id,
-            marked=True
+            marked=marked
         )
 
-        serializer = RoomSeatingSerializerResponse(session_room, many=True, sm=int(sm))
+        serializer = RoomSeatingSerializerResponse(session_room, many=True, sm=sm)
         return response_fun(1, serializer.data)
 
 
