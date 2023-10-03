@@ -23,4 +23,5 @@ urlpatterns = [
     path('collageinfo/', include("collageInfo.urls")),
     path('student/', include('student.urls')),
     path('session/', include('adminsession.urls')),
+    path('sp/', include('seatingplan.urls')),
 ]
