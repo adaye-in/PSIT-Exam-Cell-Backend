@@ -113,7 +113,18 @@ class seatingplanViewSets(viewsets.ViewSet):
             return response_fun(0, "Unprocessable Entity")
 
         student_id_list = [student.get('student_id') for arr in seatingplan for student in arr if
-                           student and student.get('student_id')]
+                           student and student.get('student_id', None)]
+
+        room_obj = admin_user.seatingplan_roomseatingmodel_related.filter(
+            pk=room_id,
+            session_id=session_id
+        ).first()
+
+        if not room_obj:
+            return response_fun(0, "Room Not Found")
+
+        if room_obj.marked:
+            return response_fun(0, "Room Already Filled")
 
         try:
             with transaction.atomic():
@@ -136,3 +147,51 @@ class seatingplanViewSets(viewsets.ViewSet):
 
         except Exception as e:
             return response_fun(0, str(e))
+
+    @action(detail=False, methods=['post'])
+    def clearRoom(self, request):
+        admin_user = JWTAuthentication.authenticate_user(request)
+        if not admin_user:
+            return response_fun(0, "User Not Found")
+
+        session_id = request.data.get('session_id', None)
+        room_id = request.data.get('room_id', None)
+
+        if not session_id or not room_id:
+            return response_fun(0, "Unprocessable Entity")
+
+        room_obj = admin_user.seatingplan_roomseatingmodel_related.filter(
+            pk=room_id,
+            session_id=session_id
+        ).first()
+
+        if not room_obj:
+            return response_fun(0, "Room Not Found")
+
+        seating_map = room_obj.seating_map
+        student_id_list = [student.get('student_id') for arr in seating_map for student in arr if
+                           student and student.get('student_id', None)]
+
+        try:
+            with transaction.atomic():
+                admin_user.seatingplan_roomseatingmodel_related.filter(
+                    pk=room_id,
+                    session_id=session_id
+                ).update(
+                    seating_map=None,
+                    marked=False
+                )
+
+                admin_user.seatingplan_seatingplanmodel_related.filter(
+                    pk__in=student_id_list,
+                    session_id=session_id
+                ).update(
+                    marked=False,
+                    room=None
+                )
+                return response_fun(1, "Room Updated Successfully")
+
+        except Exception as e:
+            return response_fun(0, str(e))
+
+
