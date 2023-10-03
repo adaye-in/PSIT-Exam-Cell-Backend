@@ -65,12 +65,16 @@ class sessionDetailsViewSets(viewsets.ViewSet):
         val_arr = [0, 1, '1', '0']
         sm = request.GET.get('sm', 0)  # sm=SeatingMap
         marked = request.GET.get('marked', 0)
+        room_id = request.data.get('room_id', None)
 
         if sm not in val_arr and marked not in val_arr:
             return response_fun(0, "Invalid Get Params")
 
         sm = int(sm)
         marked = int(marked)
+
+        if sm == 1 and not room_id:
+            return response_fun(0, "RoomId Not Found")
 
         if marked == 0:
             marked = False
@@ -91,10 +95,17 @@ class sessionDetailsViewSets(viewsets.ViewSet):
         if not session_obj:
             return response_fun(0, "Session Not Found")
 
-        session_room = admin_user.seatingplan_roomseatingmodel_related.filter(
-            session=session_id,
-            marked=marked
-        )
+        if sm == 1:
+            session_room = admin_user.seatingplan_roomseatingmodel_related.filter(
+                session=session_id,
+                marked=True,
+                pk=room_id
+            )
+        else:
+            session_room = admin_user.seatingplan_roomseatingmodel_related.filter(
+                session=session_id,
+                marked=marked
+            )
 
         serializer = RoomSeatingSerializerResponse(session_room, many=True, sm=sm)
         return response_fun(1, serializer.data)
@@ -196,5 +207,3 @@ class seatingplanViewSets(viewsets.ViewSet):
 
         except Exception as e:
             return response_fun(0, str(e))
-
-
