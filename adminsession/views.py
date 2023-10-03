@@ -96,7 +96,7 @@ class SessionViewSet(viewsets.ViewSet):
                 if serializer.is_valid():
                     serializer.save()
                 else:
-                    return response_fun(1, serializer.errors)
+                    raise f"{serializer.errors}"
 
                 rooms_obj = admin_user.collageinfo_roommodel_related.all()
                 serializer = RoomModelSerializer(rooms_obj, many=True)
@@ -109,7 +109,7 @@ class SessionViewSet(viewsets.ViewSet):
                 if room_serializer.is_valid():
                     room_serializer.save()
                 else:
-                    return response_fun(0, room_serializer.errors)
+                    raise f"{serializer.errors}"
 
                 return response_fun(1, "Session Created Successfully")
         except Exception as e:
