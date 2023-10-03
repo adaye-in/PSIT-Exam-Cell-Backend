@@ -191,9 +191,15 @@ class RoomViewSet(viewsets.ViewSet):
             return response_fun(0, "User Not Found")
 
         data = request.data
+
+        room_remark = data.get('room_remark', None)
+        if not room_remark:
+            room_remark = '0'
+
         data.update({
             'created_on': datetime.now(),
             'user': admin_user.pk,
+            'room_remark': room_remark
         })
 
         serializer = RoomModelSerializer(data=data)

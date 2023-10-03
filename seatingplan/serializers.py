@@ -48,3 +48,4 @@ class SessionStudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = SeatingPlanModel
         fields = ['student_id', 'name', 'roll_number']
+        ordering = ['roll_number']

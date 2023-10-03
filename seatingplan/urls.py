@@ -5,7 +5,7 @@ from seatingplan import views
 router = DefaultRouter()
 
 router.register('', views.seatingplanViewSets, basename='seatingplanviewsets')
-router.register('', views.sessionRoomViewSets, basename='sessionroomviewsets')
+router.register('', views.sessionDetailsViewSets, basename='sessionroomviewsets')
 
 urlpatterns = []
 

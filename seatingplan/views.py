@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.decorators import action
 
@@ -8,7 +9,7 @@ from collageInfo.serializer import BranchModelSerializerResponse
 from .serializers import *
 
 
-class sessionRoomViewSets(viewsets.ViewSet):
+class sessionDetailsViewSets(viewsets.ViewSet):
 
     @action(detail=False, methods=['post'])
     def getSessionStudents(self, request):
@@ -26,7 +27,8 @@ class sessionRoomViewSets(viewsets.ViewSet):
         student_obj = admin_user.seatingplan_seatingplanmodel_related.filter(
             branch_id=branch_id,
             section_id=section_id,
-            session_id=session_id
+            session_id=session_id,
+            marked=False
         )
         serializer = SessionStudentSerializer(student_obj, many=True)
         return response_fun(1, serializer.data)
@@ -110,15 +112,27 @@ class seatingplanViewSets(viewsets.ViewSet):
         if not session_id or not room_id or seatingplan == []:
             return response_fun(0, "Unprocessable Entity")
 
-        student_id_list = []
-        for arr in seatingplan:
-            for oneStudent in arr:
-                if oneStudent.get('student_id', None):
-                    student_id_list.append(oneStudent.get('student_id'))
+        student_id_list = [student.get('student_id') for arr in seatingplan for student in arr if
+                           student and student.get('student_id')]
 
-        print(student_id_list)
-        obj = admin_user.seatingplan_seatingplanmodel_related.filter(
-            pk__in=student_id_list
-        )
-        print(obj)
-        return response_fun(1, "ok")
+        try:
+            with transaction.atomic():
+                admin_user.seatingplan_roomseatingmodel_related.filter(
+                    pk=room_id,
+                    session_id=session_id
+                ).update(
+                    seating_map=seatingplan,
+                    marked=True
+                )
+
+                admin_user.seatingplan_seatingplanmodel_related.filter(
+                    pk__in=student_id_list,
+                    session_id=session_id
+                ).update(
+                    marked=True,
+                    room=room_id
+                )
+                return response_fun(1, "Seating Plan Updated Successfully")
+
+        except Exception as e:
+            return response_fun(0, str(e))
