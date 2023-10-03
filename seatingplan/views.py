@@ -30,6 +30,9 @@ class sessionDetailsViewSets(viewsets.ViewSet):
             session_id=session_id,
             marked=False
         )
+
+        student_obj = sorted(student_obj, key=lambda x: x.student_rn)
+
         serializer = SessionStudentSerializer(student_obj, many=True)
         return response_fun(1, serializer.data)
 
