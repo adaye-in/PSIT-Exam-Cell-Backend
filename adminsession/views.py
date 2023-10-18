@@ -1,6 +1,7 @@
 import concurrent.futures
 from datetime import datetime
 
+import pandas as pd
 from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -11,7 +12,7 @@ from collageInfo.serializer import RoomModelSerializer
 from seatingplan.serializers import SeatingPlanSerializer, RoomSeatingSerializer
 from student.serializer import StudentListSerializerSeatingPlan
 from .serializers import SessionModelSerializer, SessionModelSerializerResponse
-
+from seatingplan.serializers import SessionStudentSerializer
 
 class SessionViewSet(viewsets.ViewSet):
 
@@ -144,5 +145,94 @@ class SessionViewSet(viewsets.ViewSet):
 
         session_obj = admin_user.adminsession_sessionmodel_related.all()
         serializer = SessionModelSerializerResponse(session_obj, many=True)
+
+        return response_fun(1, serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def generateDetainedExcel(self, request):
+        admin_user = JWTAuthentication.authenticate_user(request)
+        if not admin_user:
+            return response_fun(0, "User Not Found")
+
+        session_id = request.data.get('session_id', None)
+        if not session_id:
+            return response_fun(0, "session Id Not Found")
+
+        if 'file' not in request.FILES:
+            return response_fun(0, "File not found")
+
+        file = request.FILES['file']
+        if not file.name.endswith('.xlsx'):
+            return response_fun(0, "Only Excel files (.xlsx) are supported")
+
+        try:
+            df = pd.read_excel(file)
+        except Exception as e:
+            print(e)
+            return response_fun(0, str(e))
+
+        student_list = []
+
+        for index, row in df.iterrows():
+            roll_number = row.iloc[0]
+
+            if pd.isna(roll_number) or roll_number == "":
+                continue
+            student_list.append(roll_number)
+
+        student_set = set(student_list)
+
+        roomData = admin_user.seatingplan_seatingplanmodel_related.filter(
+            room__isnull=False
+        ).values('room').distinct()
+
+        rooms = []
+        if roomData.exists():
+            rooms = [i['room'] for i in roomData]
+
+        rooms_query = admin_user.seatingplan_roomseatingmodel_related.filter(
+            id__in=rooms,
+            session=session_id
+        )
+
+        for room in rooms_query:
+            sm = room.seating_map
+            for row in range(len(sm)):
+                for col in range(len(sm[row])):
+                    if sm[row][col]['student_roll'] in student_set:
+                        sm[row][col]['isDetained'] = True
+            room.seating_map = sm
+
+        try:
+            with transaction.atomic():
+                admin_user.seatingplan_roomseatingmodel_related.bulk_update(rooms_query, ['seating_map'])
+
+                admin_user.seatingplan_seatingplanmodel_related.filter(
+                    student_rn__in=student_list,
+                    session=session_id
+                ).update(
+                    isDetained=True
+                )
+        except Exception as e:
+            return response_fun(0, str(e))
+
+        return response_fun(1, "Detained List Updated Successfully")
+
+    @action(detail=False, methods=['post'])
+    def getDetainedList(self, request):
+        admin_user = JWTAuthentication.authenticate_user(request)
+        if not admin_user:
+            return response_fun(0, "User Not Found")
+
+        session_id = request.data.get('session_id', None)
+        if not session_id:
+            return response_fun(0, "session Id Not Found")
+
+        data = admin_user.seatingplan_seatingplanmodel_related.filter(
+            isDetained=True,
+            session=session_id
+        )
+
+        serializer = SessionStudentSerializer(data, many=True)
 
         return response_fun(1, serializer.data)

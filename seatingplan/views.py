@@ -31,7 +31,7 @@ class sessionDetailsViewSets(viewsets.ViewSet):
             marked=False
         )
 
-        student_obj = sorted(student_obj, key=lambda x: x.student_rn)
+        student_obj = sorted(student_obj, key=lambda x: x.id)
 
         serializer = SessionStudentSerializer(student_obj, many=True)
         return response_fun(1, serializer.data)

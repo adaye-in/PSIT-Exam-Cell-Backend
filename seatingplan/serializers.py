@@ -6,6 +6,7 @@ from .models import SeatingPlanModel, RoomSeatingModel
 class SeatingPlanSerializer(serializers.ModelSerializer):
     room_number = serializers.CharField(required=False)
     marked = serializers.BooleanField(required=False)
+    isDetained = serializers.BooleanField(required=False)
 
     class Meta:
         model = SeatingPlanModel
@@ -47,5 +48,4 @@ class SessionStudentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SeatingPlanModel
-        fields = ['student_id', 'name', 'roll_number']
-        ordering = ['roll_number']
+        fields = ['student_id', 'name', 'roll_number', 'isDetained']
