@@ -10,9 +10,10 @@ from PSITExamCellBackend.JWTMiddleware import JWTAuthentication
 from PSITExamCellBackend.utils import response_fun
 from collageInfo.serializer import RoomModelSerializer
 from seatingplan.serializers import SeatingPlanSerializer, RoomSeatingSerializer
+from seatingplan.serializers import SessionStudentSerializer
 from student.serializer import StudentListSerializerSeatingPlan
 from .serializers import SessionModelSerializer, SessionModelSerializerResponse
-from seatingplan.serializers import SessionStudentSerializer
+
 
 class SessionViewSet(viewsets.ViewSet):
 
@@ -168,8 +169,12 @@ class SessionViewSet(viewsets.ViewSet):
         try:
             df = pd.read_excel(file)
         except Exception as e:
-            print(e)
             return response_fun(0, str(e))
+
+        alreadyDetained = set(admin_user.seatingplan_seatingplanmodel_related.filter(
+            isDetained=True,
+            session=session_id
+        ).values_list('student_rn', flat=True))
 
         student_list = []
 
@@ -182,8 +187,11 @@ class SessionViewSet(viewsets.ViewSet):
 
         student_set = set(student_list)
 
+        toDetain = student_set - alreadyDetained
+        toRemoveDetained = alreadyDetained - student_set
+
         roomData = admin_user.seatingplan_seatingplanmodel_related.filter(
-            room__isnull=False
+            room__isnull=False,
         ).values('room').distinct()
 
         rooms = []
@@ -199,8 +207,10 @@ class SessionViewSet(viewsets.ViewSet):
             sm = room.seating_map
             for row in range(len(sm)):
                 for col in range(len(sm[row])):
-                    if sm[row][col]['student_roll'] in student_set:
+                    if sm[row][col]['student_roll'] in toDetain:
                         sm[row][col]['isDetained'] = True
+                    if sm[row][col]['student_roll'] in toRemoveDetained:
+                        sm[row][col]['isDetained'] = False
             room.seating_map = sm
 
         try:
@@ -208,11 +218,18 @@ class SessionViewSet(viewsets.ViewSet):
                 admin_user.seatingplan_roomseatingmodel_related.bulk_update(rooms_query, ['seating_map'])
 
                 admin_user.seatingplan_seatingplanmodel_related.filter(
-                    student_rn__in=student_list,
+                    student_rn__in=toDetain,
                     session=session_id
                 ).update(
                     isDetained=True
                 )
+                admin_user.seatingplan_seatingplanmodel_related.filter(
+                    student_rn__in=toRemoveDetained,
+                    session=session_id
+                ).update(
+                    isDetained=False
+                )
+
         except Exception as e:
             return response_fun(0, str(e))
 
@@ -231,8 +248,51 @@ class SessionViewSet(viewsets.ViewSet):
         data = admin_user.seatingplan_seatingplanmodel_related.filter(
             isDetained=True,
             session=session_id
-        )
+        ).order_by('id')
 
         serializer = SessionStudentSerializer(data, many=True)
 
         return response_fun(1, serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def deleteDetainedStudent(self, request):
+        admin_user = JWTAuthentication.authenticate_user(request)
+        if not admin_user:
+            return response_fun(0, "User Not Found")
+
+        session_id = request.data.get('session_id', None)
+        roll_number = request.data.get('roll_number', None)
+
+        if not session_id:
+            return response_fun(0, "Session Id Not Found")
+        elif not roll_number:
+            return response_fun(0, "Roll Number Not Found")
+
+        data = admin_user.seatingplan_seatingplanmodel_related.filter(
+            student_rn=roll_number,
+            session_id=session_id,
+            isDetained=True
+        ).first()
+
+        if data is None:
+            return response_fun(1, "Data Updated Successfully")
+
+        room = data.room
+        if room is None:
+            data.isDetained = False
+            data.save()
+            return response_fun(1, "Data Updated Successfully")
+
+        room_obj = admin_user.seatingplan_roomseatingmodel_related.filter(
+            pk=room,
+            session_id=session_id,
+        )
+
+        sm = room_obj.seating_map
+        for row in range(len(sm)):
+            for col in range(len(sm[row])):
+                if sm[row][col]['student_roll'] == roll_number:
+                    sm[row][col]['isDetained'] = False
+        room_obj.seating_map = sm
+        room_obj.save()
+        return response_fun(1, "Data Updated Successfully")
