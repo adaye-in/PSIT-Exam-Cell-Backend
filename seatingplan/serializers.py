@@ -23,6 +23,7 @@ class RoomSeatingSerializer(serializers.ModelSerializer):
 
 
 class RoomSeatingSerializerResponse(serializers.ModelSerializer):
+    session_name = serializers.CharField(source='session.session_name')
 
     def __init__(self, *args, **kwargs):
         sm = kwargs.pop('sm', 0)
