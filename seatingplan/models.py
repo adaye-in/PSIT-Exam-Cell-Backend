@@ -34,6 +34,7 @@ class SeatingPlanModel(models.Model):
     section_name = models.CharField(max_length=128)
     room = models.ForeignKey(RoomSeatingModel, on_delete=models.DO_NOTHING, null=True)
     marked = models.BooleanField(default=False)
+    isDetained = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'seatingPlan'
