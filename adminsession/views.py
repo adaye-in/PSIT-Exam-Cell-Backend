@@ -278,15 +278,15 @@ class SessionViewSet(viewsets.ViewSet):
             return response_fun(1, "Data Updated Successfully")
 
         room = data.room
+        data.isDetained = False
+        data.save()
         if room is None:
-            data.isDetained = False
-            data.save()
             return response_fun(1, "Data Updated Successfully")
 
         room_obj = admin_user.seatingplan_roomseatingmodel_related.filter(
-            pk=room,
+            pk=room.id,
             session_id=session_id,
-        )
+        ).first()
 
         sm = room_obj.seating_map
         for row in range(len(sm)):
