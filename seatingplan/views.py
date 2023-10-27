@@ -6,6 +6,8 @@ from PSITExamCellBackend.JWTMiddleware import JWTAuthentication
 from PSITExamCellBackend.utils import response_fun
 from collageInfo.models import BranchModel
 from collageInfo.serializer import BranchModelSerializerResponse
+from pdf_utils.CRUD_to_cloud import *
+from pdf_utils.converthtmltopdf import begin_pdf
 from .serializers import *
 
 
@@ -139,7 +141,6 @@ class seatingplanViewSets(viewsets.ViewSet):
 
         if room_obj.marked:
             return response_fun(0, "Room Already Filled")
-
         try:
             with transaction.atomic():
                 admin_user.seatingplan_roomseatingmodel_related.filter(
@@ -157,6 +158,17 @@ class seatingplanViewSets(viewsets.ViewSet):
                     marked=True,
                     room=room_id
                 )
+
+                roomData = admin_user.seatingplan_roomseatingmodel_related.filter(
+                    pk=room_id,
+                    session_id=session_id
+                ).first()
+
+                serializer = RoomSeatingSerializerResponse(roomData, sm=1)
+                data = serializer.data
+                session_name = str(data['id']) + "".join(data['session_name'].split(" "))
+                pdf_obj_and_name = begin_pdf(data)
+                save_to_aws(pdf_obj_and_name[0], pdf_obj_and_name[1], session_name)
                 return response_fun(1, "Seating Plan Updated Successfully")
 
         except Exception as e:
@@ -179,10 +191,18 @@ class seatingplanViewSets(viewsets.ViewSet):
             session_id=session_id
         ).first()
 
+        data = RoomSeatingSerializerResponse(room_obj, sm=1).data
+        session_name = str(data['id']) + "".join(data['session_name'].split(" "))
+        finalFileName = "".join(f'{data["session_name"]}_{data["room_number"]}'.split(" "))
+        delete_from_aws(finalFileName, session_name)
         if not room_obj:
             return response_fun(0, "Room Not Found")
 
         seating_map = room_obj.seating_map
+
+        if seating_map is None:
+            return response_fun(1, "Room Cleared Successfully")
+
         student_id_list = [student.get('student_id') for arr in seating_map for student in arr if
                            student and student.get('student_id', None)]
 
@@ -203,7 +223,8 @@ class seatingplanViewSets(viewsets.ViewSet):
                     marked=False,
                     room=None
                 )
-                return response_fun(1, "Room Updated Successfully")
+
+                return response_fun(1, "Room Cleared Successfully")
 
         except Exception as e:
             return response_fun(0, str(e))

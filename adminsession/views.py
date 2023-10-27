@@ -9,6 +9,9 @@ from rest_framework.decorators import action
 from PSITExamCellBackend.JWTMiddleware import JWTAuthentication
 from PSITExamCellBackend.utils import response_fun
 from collageInfo.serializer import RoomModelSerializer
+from pdf_utils.CRUD_to_cloud import save_to_aws
+from pdf_utils.converthtmltopdf import begin_pdf
+from seatingplan.serializers import RoomSeatingSerializerResponse
 from seatingplan.serializers import SeatingPlanSerializer, RoomSeatingSerializer
 from seatingplan.serializers import SessionStudentSerializer
 from student.serializer import StudentListSerializerSeatingPlan
@@ -192,6 +195,7 @@ class SessionViewSet(viewsets.ViewSet):
 
         roomData = admin_user.seatingplan_seatingplanmodel_related.filter(
             room__isnull=False,
+            session=session_id
         ).values('room').distinct()
 
         rooms = []
@@ -229,6 +233,19 @@ class SessionViewSet(viewsets.ViewSet):
                 ).update(
                     isDetained=False
                 )
+
+                # Updating Pdf on AWS
+                rooms_query = admin_user.seatingplan_roomseatingmodel_related.filter(
+                    id__in=rooms,
+                    session=session_id
+                )
+
+                data_s = RoomSeatingSerializerResponse(rooms_query, many=True, sm=1).data
+
+                for data in data_s:
+                    session_name = str(data['id']) + "".join(data['session_name'].split(" "))
+                    pdf_obj_and_name = begin_pdf(data)
+                    save_to_aws(pdf_obj_and_name[0], pdf_obj_and_name[1], session_name)
 
         except Exception as e:
             return response_fun(0, str(e))
@@ -295,4 +312,10 @@ class SessionViewSet(viewsets.ViewSet):
                     sm[row][col]['isDetained'] = False
         room_obj.seating_map = sm
         room_obj.save()
+
+        data = RoomSeatingSerializerResponse(room_obj, sm=1).data
+        session_name = str(data['id']) + "".join(data['session_name'].split(" "))
+        pdf_obj_and_name = begin_pdf(data)
+        save_to_aws(pdf_obj_and_name[0], pdf_obj_and_name[1], session_name)
+
         return response_fun(1, "Data Updated Successfully")
