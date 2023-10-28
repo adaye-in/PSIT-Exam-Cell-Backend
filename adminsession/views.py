@@ -4,7 +4,7 @@ from io import BytesIO
 
 import boto3
 import pandas as pd
-from PyPDF2 import PdfReader, PdfWriter, PdfMerger
+from PyPDF2 import PdfReader, PdfWriter
 from django.db import transaction
 from django.http import HttpResponse
 from rest_framework import viewsets
@@ -328,6 +328,45 @@ class SessionViewSet(viewsets.ViewSet):
 
 class ReportViewSet(viewsets.ViewSet):
 
+    @staticmethod
+    def getStudentCount(admin_user, session_id, section_name, room_number):
+        student_rn_count = admin_user.seatingplan_seatingplanmodel_related.filter(
+            section__section_name=section_name,
+            room__room_number=room_number,
+            session_id=session_id,
+            user=admin_user
+        ).count()
+        return student_rn_count
+
+    @staticmethod
+    def getStudent_Min_Max(admin_user, session_id, section_name, room_number):
+        student_rn_values = admin_user.seatingplan_seatingplanmodel_related.filter(
+            section__section_name=section_name,
+            room__room_number=room_number,
+            session_id=session_id,
+            user=admin_user
+        ).values_list('student_rn', flat=True)
+
+        sorted_numbers = sorted(student_rn_values, key=lambda x: str(x)[:2], reverse=True)
+
+        # Creating partitions
+        partitions = {}
+        for num in sorted_numbers:
+            key = int(str(num)[:2])
+            if key in partitions:
+                partitions[key].append(num)
+            else:
+                partitions[key] = [num]
+
+        # Finding minimum from the first partition and maximum from the last partition
+        first_partition = partitions[max(partitions.keys())]
+        last_partition = partitions[min(partitions.keys())]
+
+        minimum_first_partition = min(first_partition)
+        maximum_last_partition = max(last_partition)
+
+        return minimum_first_partition, maximum_last_partition
+
     @action(detail=False, methods=['get', 'post'])
     def getStudentReport(self, request):
         admin_user = JWTAuthentication.authenticate_user(request)
@@ -375,3 +414,68 @@ class ReportViewSet(viewsets.ViewSet):
         response['Content-Disposition'] = f'attachment; filename="student_seating_{session_obj.session_name}.pdf"'
         return response
 
+    @action(detail=False, methods=['get', 'post'])
+    def getBranchWiseReport(self, request):
+        admin_user = JWTAuthentication.authenticate_user(request)
+        if not admin_user:
+            return response_fun(0, "User Not Found")
+
+        session_id = request.data.get('session_id', None)
+        if session_id is None:
+            return response_fun(0, "Session Id Not Found")
+
+        report_data = admin_user.seatingplan_seatingplanmodel_related.filter(
+            session_id=session_id, user=admin_user, room__isnull=False
+        ).values_list('section__section_name', 'room__room_number', 'section__present_year',
+                      'branch__branch_name').distinct(
+            'section__section_name', 'room__room_number'
+        ).order_by('section__section_name')
+
+        final_data = {}
+        for item in report_data:
+            section_name, room_number, yr, branch_name = item[0], item[1], item[2], item[3]
+            if yr not in final_data:
+                final_data[yr] = {}
+            if branch_name not in final_data[yr]:
+                final_data[yr][branch_name] = {}
+            if section_name not in final_data[yr][branch_name]:
+                min_rn, max_rn = ReportViewSet.getStudent_Min_Max(admin_user, session_id, section_name, room_number)
+                final_data[yr][branch_name][section_name] = [[room_number, min_rn, max_rn]]
+            else:
+                min_rn, max_rn = ReportViewSet.getStudent_Min_Max(admin_user, session_id, section_name, room_number)
+                temp_data = [room_number, min_rn, max_rn]
+                final_data[yr][branch_name][section_name].append(temp_data)
+
+        return response_fun(1, final_data)
+
+    @action(detail=False, methods=['get', 'post'])
+    def getRoomWiseReport(self, request):
+        admin_user = JWTAuthentication.authenticate_user(request)
+        if not admin_user:
+            return response_fun(0, "User Not Found")
+
+        session_id = request.data.get('session_id', None)
+        if session_id is None:
+            return response_fun(0, "Session Id Not Found")
+
+        report_data = admin_user.seatingplan_seatingplanmodel_related.filter(
+            session_id=session_id, user=admin_user, room__isnull=False
+        ).values_list('section__section_name', 'room__room_number', 'section__present_year',
+                      'branch__branch_name').distinct(
+            'section__section_name', 'room__room_number'
+        ).order_by('room__room_number')
+
+        final_data = {}
+
+        for item in report_data:
+            section_name, room_number, yr, branch_name = item[0], item[1], item[2], item[3]
+            if room_number in final_data:
+                min_rn, max_rn = ReportViewSet.getStudent_Min_Max(admin_user, session_id, section_name, room_number)
+                count = ReportViewSet.getStudentCount(admin_user, session_id, section_name, room_number)
+                final_data[room_number].append([min_rn, max_rn, section_name, count])
+            else:
+                min_rn, max_rn = ReportViewSet.getStudent_Min_Max(admin_user, session_id, section_name, room_number)
+                count = ReportViewSet.getStudentCount(admin_user, session_id, section_name, room_number)
+                final_data[room_number] = [[min_rn, max_rn, section_name, count]]
+
+        return response_fun(1, final_data)
