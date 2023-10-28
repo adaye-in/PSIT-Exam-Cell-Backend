@@ -98,32 +98,32 @@ def getMatrixString(dataArr, gapStr, showBranches):
     return outputStr
 
 
-def getBranchWiseStudents(dataArr):
-    branchObj = {}
+def getSectionWiseStudents(dataArr):
+    sectionObj = {}
     for rows in range(len(dataArr[0])):
         for cols in range(len(dataArr)):
             dataCell = dataArr[cols][rows]
             if dataCell is not None and dataCell['student_roll'] is not None:
                 temp = [dataCell["student_roll"], dataCell["student_name"], dataCell["isDetained"]]
-                if (dataCell["branch_name"] in branchObj):
-                    branchObj[dataCell["branch_name"]].append(temp)
+                if (dataCell["section_name"] in sectionObj):
+                    sectionObj[dataCell["section_name"]].append(temp)
                 else:
-                    branchObj[dataCell["branch_name"]] = [temp]
-    return branchObj
+                    sectionObj[dataCell["section_name"]] = [temp]
+    return sectionObj
 
 
-def getMatrixFooter(BranchWiseStudents):
+def getMatrixFooter(SectionWiseStudents):
     gap = 40
     divStyleCenter = f"width: 100%; display: flex; justify-content: center;align-items:center;padding-top:{gap}px"
     tableStyle = "width:100%;background-color:white;border-collapse:collapse;"
     usingWidth = PaperSize["A4"]["height"] - 10
     usingHeight = PaperSize["A4"]["width"] - 10
     cellPadding = "10px 0px"
-    cellWidth = usingHeight / len(BranchWiseStudents.keys()) + 1
+    cellWidth = usingHeight / len(SectionWiseStudents.keys()) + 1
     outputStr = f'<div style="{divStyleCenter}"><table style="{tableStyle}"><tbody style="width:100%">'
     outputStr += '<tr>'
 
-    for i in BranchWiseStudents.keys():
+    for i in SectionWiseStudents.keys():
         outputStr += f'''
             <th style="border:1px solid black;min-width:{cellWidth}px;padding:{cellPadding};text-align:center">{i}</th>
         '''
@@ -136,10 +136,10 @@ def getMatrixFooter(BranchWiseStudents):
     outputStr += '<tr>'
     total_students = 0
 
-    for i in BranchWiseStudents.keys():
-        total_students += len(BranchWiseStudents[i])
+    for i in SectionWiseStudents.keys():
+        total_students += len(SectionWiseStudents[i])
         outputStr += f'''
-            <td style="border:1px solid black;min-width:{cellWidth}px;padding:{cellPadding};text-align:center">{len(BranchWiseStudents[i])}</td>
+            <td style="border:1px solid black;min-width:{cellWidth}px;padding:{cellPadding};text-align:center">{len(SectionWiseStudents[i])}</td>
         '''
 
     outputStr += f'''
@@ -258,8 +258,8 @@ def createMatrixPage(RoomObject, path, pathsAll, showBranches=False, fileName="M
     Result += getMatrixString(RoomObject["seating_map"], RoomObject["room_breakout"], showBranches)
     Result = addParentDiv(Result);
 
-    BranchWiseStudents = getBranchWiseStudents(RoomObject["seating_map"])
-    Result += getMatrixFooter(BranchWiseStudents)
+    SectionWiseStudents = getSectionWiseStudents(RoomObject["seating_map"])
+    Result += getMatrixFooter(SectionWiseStudents)
     PathFinal = f"{path}/{fileName}.pdf"
 
     pathsAll.append(PathFinal)
@@ -289,10 +289,10 @@ def createAttendancePage(students, branch, session, room_number, path, fileName,
 
 
 def createAttendancePageAll(RoomObject, pathFile, pathsAll, baseFileName="Attendance"):
-    BranchWiseStudents = getBranchWiseStudents(RoomObject["seating_map"])
+    SectionWiseStudents = getSectionWiseStudents(RoomObject["seating_map"])
     pages_list = []
-    for keys in BranchWiseStudents.keys():
-        studentsObj = BranchWiseStudents[keys]
+    for keys in SectionWiseStudents.keys():
+        studentsObj = SectionWiseStudents[keys]
         FileName = f"{baseFileName}_{keys}"
         pdf = createAttendancePage(studentsObj, keys, RoomObject["session_name"], RoomObject["room_number"], pathFile,
                              FileName, pathsAll)
