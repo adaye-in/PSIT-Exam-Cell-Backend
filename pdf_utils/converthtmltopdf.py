@@ -49,7 +49,6 @@ def getMatrixString(dataArr, gapStr, showBranches):
     cellPadding = "10px 0px"
     cellWidth = usingHeight / len(dataArr[0])
 
-    # print("height per : ",usingWidth / len(dataArr))
 
     gapArr = gapStr.split("*")
     comm_arr = []
@@ -60,7 +59,7 @@ def getMatrixString(dataArr, gapStr, showBranches):
         comm_arr.append(curr_elem + curr - 1)
         curr = curr_elem + curr
 
-    # print(comm_arr)
+
     comm_arr.pop()
 
     branchesString = ""
@@ -75,32 +74,41 @@ def getMatrixString(dataArr, gapStr, showBranches):
             if (showBranches):
                 branchesString = f'<br><span>{dataArr[rows][cols]["section_name"]}<span>'
 
-            outputStr += f'''
-      <td style="padding:0;padding-right:{right_gap}px;margin:0">
-        <div style="border:1px solid black;min-width:{cellWidth}px;padding:{cellPadding};text-align:center">
-          <span>{dataArr[rows][cols]["student_roll"]}<span>
-          {branchesString}
-        </div>
-      </td>
-      '''
+            if dataArr[rows][cols]["student_roll"] is not None and dataArr[rows][cols] is not None:
+                outputStr += f'''
+                      <td style="padding:0;padding-right:{right_gap}px;margin:0">
+                        <div style="border:1px solid black;min-width:{cellWidth}px;padding:{cellPadding};text-align:center">
+                          <span>{dataArr[rows][cols]["student_roll"]}<span>
+                          {branchesString}
+                        </div>
+                      </td>
+                      '''
+            else:
+                outputStr += f'''
+                      <td style="padding:0;padding-right:{right_gap}px;margin:0">
+                        <div style="border:1px solid black;min-width:{cellWidth}px;padding:{cellPadding};text-align:center">
+                          <span>N/A<span>
+                          <br><span>--<span>
+                        </div>
+                      </td>
+                      '''
+
         outputStr += '</tr>'
     outputStr += '</tbody></table></div>'
-    # print(outputStr)
     return outputStr
 
 
 def getBranchWiseStudents(dataArr):
     branchObj = {}
-    # print(len(dataArr[0]))
     for rows in range(len(dataArr[0])):
         for cols in range(len(dataArr)):
-            print(cols, rows)
             dataCell = dataArr[cols][rows]
-            temp = [dataCell["student_roll"], dataCell["student_name"], dataCell["isDetained"]]
-            if (dataCell["branch_name"] in branchObj):
-                branchObj[dataCell["branch_name"]].append(temp)
-            else:
-                branchObj[dataCell["branch_name"]] = [temp]
+            if dataCell is not None and dataCell['student_roll'] is not None:
+                temp = [dataCell["student_roll"], dataCell["student_name"], dataCell["isDetained"]]
+                if (dataCell["branch_name"] in branchObj):
+                    branchObj[dataCell["branch_name"]].append(temp)
+                else:
+                    branchObj[dataCell["branch_name"]] = [temp]
     return branchObj
 
 
@@ -248,15 +256,12 @@ def createMatrixPage(RoomObject, path, pathsAll, showBranches=False, fileName="M
 
     Result += getMatrixHeader(RoomObject)
     Result += getMatrixString(RoomObject["seating_map"], RoomObject["room_breakout"], showBranches)
-
     Result = addParentDiv(Result);
 
     BranchWiseStudents = getBranchWiseStudents(RoomObject["seating_map"])
-    print(BranchWiseStudents)
     Result += getMatrixFooter(BranchWiseStudents)
     PathFinal = f"{path}/{fileName}.pdf"
 
-    print("filename", PathFinal)
     pathsAll.append(PathFinal)
     options = {'orientation': 'Landscape'}
     # pdfkit.from_string(Result, PathFinal, configuration=config, options=options)
@@ -276,7 +281,6 @@ def createAttendancePage(students, branch, session, room_number, path, fileName,
 
     PathFinal = f"{path}/{fileName}.pdf"
 
-    print("filename", PathFinal)
     pathsAll.append(PathFinal)
     options = {'orientation': 'Portrait'}
     # pdfkit.from_string(Result, PathFinal, configuration=config, options=options)
@@ -313,9 +317,3 @@ def begin_pdf(MockData,showBranches=True):
     output_pdf_io = BytesIO()
     pdf_writer.write(output_pdf_io)
     return [output_pdf_io, finalFileName]
-
-# if __name__ == '__main__':
-#     f = open('./Data/Mock.json')
-#     MockData = json.load(f)
-
-    # begin_pdf(MockData,True)
