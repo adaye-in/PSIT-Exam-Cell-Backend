@@ -5,6 +5,7 @@ from adminsession import views
 router = DefaultRouter()
 
 router.register('', views.SessionViewSet, basename='Sessionviewset')
+router.register('', views.ReportViewSet, basename='Reportviewset')
 
 urlpatterns = []
 

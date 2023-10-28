@@ -17,6 +17,9 @@ pandas = "^2.1.0"
 openpyxl = "^3.1.2"
 django-cors-headers = "^4.2.0"
 futures = "*"
+pypdf2 = "^3.0.1"
+pdfkit = "^1.0.0"
+boto3 = "^1.28.71"
 
 
 [build-system]
