@@ -1,12 +1,17 @@
 import concurrent.futures
 from datetime import datetime
+from io import BytesIO
 
+import boto3
 import pandas as pd
+from PyPDF2 import PdfReader, PdfWriter, PdfMerger
 from django.db import transaction
+from django.http import HttpResponse
 from rest_framework import viewsets
 from rest_framework.decorators import action
 
 from PSITExamCellBackend.JWTMiddleware import JWTAuthentication
+from PSITExamCellBackend.settings import AWS_ACCESS_KEY, AWS_SECRET_ACCESS_KEY, BUCKET_NAME
 from PSITExamCellBackend.utils import response_fun
 from collageInfo.serializer import RoomModelSerializer
 from pdf_utils.CRUD_to_cloud import save_to_aws
@@ -243,7 +248,7 @@ class SessionViewSet(viewsets.ViewSet):
                 data_s = RoomSeatingSerializerResponse(rooms_query, many=True, sm=1).data
 
                 for data in data_s:
-                    session_name = str(data['id']) + "".join(data['session_name'].split(" "))
+                    session_name = str(data['session']) + "".join(data['session_name'].split(" "))
                     pdf_obj_and_name = begin_pdf(data)
                     save_to_aws(pdf_obj_and_name[0], pdf_obj_and_name[1], session_name)
 
@@ -314,8 +319,59 @@ class SessionViewSet(viewsets.ViewSet):
         room_obj.save()
 
         data = RoomSeatingSerializerResponse(room_obj, sm=1).data
-        session_name = str(data['id']) + "".join(data['session_name'].split(" "))
+        session_name = str(data['session']) + "".join(data['session_name'].split(" "))
         pdf_obj_and_name = begin_pdf(data)
         save_to_aws(pdf_obj_and_name[0], pdf_obj_and_name[1], session_name)
 
         return response_fun(1, "Data Updated Successfully")
+
+
+class ReportViewSet(viewsets.ViewSet):
+
+    @action(detail=False, methods=['get', 'post'])
+    def getStudentReport(self, request):
+        admin_user = JWTAuthentication.authenticate_user(request)
+        if not admin_user:
+            return response_fun(0, "User Not Found")
+
+        session_id = request.data.get('session_id', None)
+        if session_id is None:
+            return response_fun(0, "Session Id Not Found")
+
+        session_obj = admin_user.adminsession_sessionmodel_related.filter(
+            pk=session_id
+        ).first()
+
+        if session_obj is None:
+            return response_fun(0, "Session Does Not Exists")
+
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=AWS_ACCESS_KEY,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            region_name='ap-south-2'
+        )
+        session_name = str(session_obj.id) + "".join(session_obj.session_name.split(" "))
+        response = s3_client.list_objects_v2(Bucket=BUCKET_NAME, Prefix=f'PSIT/{session_name}')
+
+        pdf_writer = PdfWriter()
+
+        for obj in response.get('Contents', []):
+            key = obj['Key']
+            if key.endswith('.pdf'):
+                pdf_file = s3_client.get_object(Bucket=BUCKET_NAME, Key=key)
+                pdf_data = pdf_file['Body'].read()
+
+                pdf_reader = PdfReader(BytesIO(pdf_data))
+
+                for page in range(len(pdf_reader.pages)):
+                    pdf_writer.add_page(pdf_reader.pages[page])
+
+        output_buffer = BytesIO()
+        pdf_writer.write(output_buffer)
+        output_buffer.seek(0)
+
+        response = HttpResponse(output_buffer, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="student_seating_{session_obj.session_name}.pdf"'
+        return response
+

@@ -93,7 +93,7 @@ def getBranchWiseStudents(dataArr):
     branchObj = {}
     for rows in range(len(dataArr)):
         for cols in range(len(dataArr[0])):
-            dataCell = dataArr[rows][cols]
+            dataCell = dataArr[cols][rows]
             temp = [dataCell["student_roll"], dataCell["student_name"], dataCell["isDetained"]]
             if (dataCell["branch_name"] in branchObj):
                 branchObj[dataCell["branch_name"]].append(temp)

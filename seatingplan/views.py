@@ -166,7 +166,7 @@ class seatingplanViewSets(viewsets.ViewSet):
 
                 serializer = RoomSeatingSerializerResponse(roomData, sm=1)
                 data = serializer.data
-                session_name = str(data['id']) + "".join(data['session_name'].split(" "))
+                session_name = str(data['session']) + "".join(data['session_name'].split(" "))
                 pdf_obj_and_name = begin_pdf(data)
                 save_to_aws(pdf_obj_and_name[0], pdf_obj_and_name[1], session_name)
                 return response_fun(1, "Seating Plan Updated Successfully")
@@ -192,7 +192,7 @@ class seatingplanViewSets(viewsets.ViewSet):
         ).first()
 
         data = RoomSeatingSerializerResponse(room_obj, sm=1).data
-        session_name = str(data['id']) + "".join(data['session_name'].split(" "))
+        session_name = str(data['session']) + "".join(data['session_name'].split(" "))
         finalFileName = "".join(f'{data["session_name"]}_{data["room_number"]}'.split(" "))
         delete_from_aws(finalFileName, session_name)
         if not room_obj:
