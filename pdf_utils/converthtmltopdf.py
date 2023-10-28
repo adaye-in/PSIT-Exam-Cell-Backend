@@ -91,8 +91,10 @@ def getMatrixString(dataArr, gapStr, showBranches):
 
 def getBranchWiseStudents(dataArr):
     branchObj = {}
-    for rows in range(len(dataArr)):
-        for cols in range(len(dataArr[0])):
+    # print(len(dataArr[0]))
+    for rows in range(len(dataArr[0])):
+        for cols in range(len(dataArr)):
+            print(cols, rows)
             dataCell = dataArr[cols][rows]
             temp = [dataCell["student_roll"], dataCell["student_name"], dataCell["isDetained"]]
             if (dataCell["branch_name"] in branchObj):
@@ -201,7 +203,7 @@ def getAttendanceFooter(students):
 def getAttendanceString(students):
     divStyleCenter = "width: 100%; display: flex; justify-content: center;align-items:center"
     tableStyle = "width:100%;background-color:white;border-collapse:collapse;"
-    cellStyle = f'padding:0;margin:0;border:1px solid black;padding:6px 12px'
+    cellStyle = f'padding:0;margin:0;border:1px solid black;padding:4px 9px'
     outputStr = f'<div style="{divStyleCenter}"><table style="{tableStyle}"><tbody style="width:100%">'
 
     outputStr += f'''
@@ -250,6 +252,7 @@ def createMatrixPage(RoomObject, path, pathsAll, showBranches=False, fileName="M
     Result = addParentDiv(Result);
 
     BranchWiseStudents = getBranchWiseStudents(RoomObject["seating_map"])
+    print(BranchWiseStudents)
     Result += getMatrixFooter(BranchWiseStudents)
     PathFinal = f"{path}/{fileName}.pdf"
 
@@ -306,11 +309,6 @@ def begin_pdf(MockData,showBranches=True):
 
     for i in pdf_list:
         pdf_writer.append(PdfReader(BytesIO(i)))
-
-    # test
-    # with open('sanat.pdf', 'wb') as f:
-    #     print(os.getcwd())
-    #     pdf_writer.write(f)
 
     output_pdf_io = BytesIO()
     pdf_writer.write(output_pdf_io)
