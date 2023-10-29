@@ -167,7 +167,6 @@ class seatingplanViewSets(viewsets.ViewSet):
                 serializer = RoomSeatingSerializerResponse(roomData, sm=1)
                 data = serializer.data
                 session_name = str(data['session']) + "".join(data['session_name'].split(" "))
-                print(data)
                 pdf_obj_and_name = begin_pdf(data)
                 save_to_aws(pdf_obj_and_name[0], pdf_obj_and_name[1], session_name)
                 return response_fun(1, "Seating Plan Updated Successfully")

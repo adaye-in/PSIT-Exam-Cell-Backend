@@ -257,7 +257,6 @@ def createMatrixPage(RoomObject, path, pathsAll, showBranches=False, fileName="M
     Result += getMatrixHeader(RoomObject)
     Result += getMatrixString(RoomObject["seating_map"], RoomObject["room_breakout"], showBranches)
     Result = addParentDiv(Result);
-
     SectionWiseStudents = getSectionWiseStudents(RoomObject["seating_map"])
     Result += getMatrixFooter(SectionWiseStudents)
     PathFinal = f"{path}/{fileName}.pdf"
