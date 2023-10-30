@@ -22,13 +22,26 @@ class BranchViewSet(viewsets.ViewSet):
         except AdminModel.DoesNotExist:
             return response_fun(0, {"message": "User does not exist."})
 
-        # Set the 'user' field with the AdminModel instance
-        data.update({
-            'user': admin_user.pk,
-            'created_on': datetime.now()
-        })
+        branches = data.get('branch_name').split(';')
+        duration = data.get('duration_of_course_year')
+        branches = [i for i in branches if i != '']
+        data_arr = []
 
-        serializer = BranchModelSerializer(data=data)
+        for branch in branches:
+            data_arr.append(
+                {
+                    "branch_name": branch,
+                    "duration_of_course_year": duration,
+                    'user': admin_user.pk,
+                    'created_on': datetime.now()
+                }
+            )
+        # Set the 'user' field with the AdminModel instance
+        # data.update({
+        #     'user': admin_user.pk,
+        #     'created_on': datetime.now()
+        # })
+        serializer = BranchModelSerializer(data=data_arr, many=True)
 
         if serializer.is_valid():
             serializer.save()
@@ -89,22 +102,40 @@ class SectionViewSet(viewsets.ViewSet):
         # Check if the user with the provided user_id exists
         try:
             admin_user = AdminModel.objects.get(pk=admin_pk)
+            if admin_user is None:
+                return response_fun(0, {"message": "User does not exist."})
         except AdminModel.DoesNotExist:
             return response_fun(0, {"message": "User does not exist."})
 
         try:
             branch_instance = BranchModel.objects.get(pk=request.data['branch_id'])
+            if branch_instance is None:
+                return response_fun(0, {"message": "Branch does not exist."})
         except BranchModel.DoesNotExist:
             return response_fun(0, {"message": "Branch does not exist."})
 
+        sections = data.get('section_name').split(';')
+        sections = [i for i in sections if i != '']
+        present_yr = data.get('present_year')
+        data_arr = []
+        for section in sections:
+            data_arr.append(
+                {
+                    "branch": branch_instance.pk,
+                    "section_name": section,
+                    "present_year": present_yr,
+                    'user': admin_user.pk,
+                    'created_on': datetime.now()
+                }
+            )
         # Set the 'user' field with the AdminModel instance
-        data.update({
-            'user': admin_user.pk,
-            'created_on': datetime.now(),
-            'branch': branch_instance.pk
-        })
+        # data.update({
+        #     'user': admin_user.pk,
+        #     'created_on': datetime.now(),
+        #     'branch': branch_instance.pk
+        # })
 
-        serializer = SectionModelSerializer(data=data)
+        serializer = SectionModelSerializer(data=data_arr, many=True)
 
         if serializer.is_valid():
             serializer.save()

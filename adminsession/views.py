@@ -367,6 +367,18 @@ class ReportViewSet(viewsets.ViewSet):
 
         return minimum_first_partition, maximum_last_partition
 
+    @staticmethod
+    def get_student_first_last(section_name, seatingMap):
+        student = []
+        for rows in range(len(seatingMap[0])):
+            for cols in range(len(seatingMap)):
+                obj = seatingMap[cols][rows]
+                if obj and obj.get("section_name") == section_name:
+                    student.append(obj["student_roll"])
+        if student:
+            return student[0], student[-1], len(student)
+        return None, None, 0
+
     @action(detail=False, methods=['get', 'post'])
     def getStudentReport(self, request):
         admin_user = JWTAuthentication.authenticate_user(request)
@@ -427,26 +439,56 @@ class ReportViewSet(viewsets.ViewSet):
         report_data = admin_user.seatingplan_seatingplanmodel_related.filter(
             session_id=session_id, user=admin_user, room__isnull=False
         ).values_list('section__section_name', 'room__room_number', 'section__present_year',
-                      'branch__branch_name').distinct(
+                      'branch__branch_name', 'room__seating_map').distinct(
             'section__section_name', 'room__room_number'
         ).order_by('section__section_name')
 
         final_data = {}
         for item in report_data:
-            section_name, room_number, yr, branch_name = item[0], item[1], item[2], item[3]
+            section_name, room_number, yr, branch_name, sm = item[0], item[1], item[2], item[3], item[4]
             if yr not in final_data:
                 final_data[yr] = {}
             if branch_name not in final_data[yr]:
                 final_data[yr][branch_name] = {}
             if section_name not in final_data[yr][branch_name]:
-                min_rn, max_rn = ReportViewSet.getStudent_Min_Max(admin_user, session_id, section_name, room_number)
+                # min_rn, max_rn = ReportViewSet.getStudent_Min_Max(admin_user, session_id, section_name, room_number)
+                min_rn, max_rn, count = ReportViewSet.get_student_first_last(section_name, sm)
                 final_data[yr][branch_name][section_name] = [[room_number, min_rn, max_rn]]
             else:
-                min_rn, max_rn = ReportViewSet.getStudent_Min_Max(admin_user, session_id, section_name, room_number)
+                min_rn, max_rn, count = ReportViewSet.get_student_first_last(section_name, sm)
                 temp_data = [room_number, min_rn, max_rn]
                 final_data[yr][branch_name][section_name].append(temp_data)
 
-        return response_fun(1, final_data)
+        def generate_excel(data):
+            excel_data = []
+            for key, value in data.items():
+                for inner_key, inner_value in value.items():
+                    excel_data.append([key, inner_key, None, None, None, None, None])
+                    for sub_key, sub_value in inner_value.items():
+                        excel_data.append([None, None, sub_key, None, None, None, None])
+                        for sub_list in sub_value:
+                            first = str(sub_list[-2])[:2]
+                            last = str(sub_list[-1])[:2]
+                            isDifferent = None
+                            if first != last:
+                                isDifferent = True
+                            excel_data.append([None, None, None, *sub_list, isDifferent])
+
+            # Create a pandas DataFrame from the data
+            df = pd.DataFrame(excel_data, columns=["Year", "Branch", "Section", "Room_Number", "From", "To", "verify"])
+            excel_buffer = BytesIO()
+            # Write DataFrame to an Excel file
+            with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+                df.to_excel(writer, index=False, merge_cells=True)
+                excel_buffer.seek(0)
+            return excel_buffer
+
+        excel_buffer_final = generate_excel(final_data)
+        response = HttpResponse(excel_buffer_final.getvalue(),
+                                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename=output_data.xlsx'
+        return response
+        # return response_fun(1, final_data)
 
     @action(detail=False, methods=['get', 'post'])
     def getRoomWiseReport(self, request):
@@ -461,21 +503,48 @@ class ReportViewSet(viewsets.ViewSet):
         report_data = admin_user.seatingplan_seatingplanmodel_related.filter(
             session_id=session_id, user=admin_user, room__isnull=False
         ).values_list('section__section_name', 'room__room_number', 'section__present_year',
-                      'branch__branch_name').distinct(
+                      'branch__branch_name', 'room__seating_map').distinct(
             'section__section_name', 'room__room_number'
         ).order_by('room__room_number')
 
         final_data = {}
 
         for item in report_data:
-            section_name, room_number, yr, branch_name = item[0], item[1], item[2], item[3]
+            # print(item)
+            section_name, room_number, yr, branch_name, sm = item[0], item[1], item[2], item[3], item[4]
             if room_number in final_data:
-                min_rn, max_rn = ReportViewSet.getStudent_Min_Max(admin_user, session_id, section_name, room_number)
-                count = ReportViewSet.getStudentCount(admin_user, session_id, section_name, room_number)
+                min_rn, max_rn, count = ReportViewSet.get_student_first_last(section_name, sm)
+                # count = ReportViewSet.getStudentCount(admin_user, session_id, section_name, room_number)
                 final_data[room_number].append([min_rn, max_rn, section_name, count])
             else:
-                min_rn, max_rn = ReportViewSet.getStudent_Min_Max(admin_user, session_id, section_name, room_number)
-                count = ReportViewSet.getStudentCount(admin_user, session_id, section_name, room_number)
+                min_rn, max_rn, count = ReportViewSet.get_student_first_last(section_name, sm)
+                # count = ReportViewSet.getStudentCount(admin_user, session_id, section_name, room_number)
                 final_data[room_number] = [[min_rn, max_rn, section_name, count]]
 
-        return response_fun(1, final_data)
+        def generate_excel(data):
+            excel_data = []
+            for key, value in data.items():
+                excel_data.append([key, None, None, None, None, None])
+                for room_item in value:
+                    first = str(room_item[0])[:2]
+                    last = str(room_item[1])[:2]
+                    isDifferent = None
+                    if first != last:
+                        isDifferent = True
+                    excel_data.append([None, *room_item, isDifferent])
+
+            # Create a pandas DataFrame from the data
+            df = pd.DataFrame(excel_data, columns=["ROOM", "FROM", "TO", "SECTION", "COUNT", "VERIFY"])
+            excel_buffer = BytesIO()
+            # Write DataFrame to an Excel file
+            with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+                df.to_excel(writer, index=False, merge_cells=True)
+                excel_buffer.seek(0)
+
+            return excel_buffer
+
+        excel_buffer_final = generate_excel(final_data)
+        response = HttpResponse(excel_buffer_final.getvalue(),
+                                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename=output_data.xlsx'
+        return response
