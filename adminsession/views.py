@@ -382,25 +382,19 @@ class ReportViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get', 'post'])
     def getStudentReport(self, request):
         admin_user = JWTAuthentication.authenticate_user(request)
-        output_buffer = BytesIO()
         if not admin_user:
-            response = HttpResponse(output_buffer, content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="student_seating.pdf"'
-            return response
+            return response_fun(0, "User Not Found")
+        output_buffer = BytesIO()
         session_id = request.data.get('session_id', None)
         if session_id is None:
-            response = HttpResponse(output_buffer, content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="student_seating.pdf"'
-            return response
+            return response_fun(0, "Session Id Not Found")
 
         session_obj = admin_user.adminsession_sessionmodel_related.filter(
             pk=session_id
         ).first()
 
         if session_obj is None:
-            response = HttpResponse(output_buffer, content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="student_seating.pdf"'
-            return response
+            return response_fun(0, "Session Does Not Exists")
 
         s3_client = boto3.client(
             's3',
@@ -440,6 +434,13 @@ class ReportViewSet(viewsets.ViewSet):
         session_id = request.data.get('session_id', None)
         if session_id is None:
             return response_fun(0, "Session Id Not Found")
+
+        session_obj = admin_user.adminsession_sessionmodel_related.filter(
+            pk=session_id
+        ).first()
+
+        if session_obj is None:
+            return response_fun(0, "Session Does Not Exists")
 
         report_data = admin_user.seatingplan_seatingplanmodel_related.filter(
             session_id=session_id, user=admin_user, room__isnull=False
@@ -504,6 +505,13 @@ class ReportViewSet(viewsets.ViewSet):
         session_id = request.data.get('session_id', None)
         if session_id is None:
             return response_fun(0, "Session Id Not Found")
+
+        session_obj = admin_user.adminsession_sessionmodel_related.filter(
+            pk=session_id
+        ).first()
+
+        if session_obj is None:
+            return response_fun(0, "Session Does Not Exists")
 
         report_data = admin_user.seatingplan_seatingplanmodel_related.filter(
             session_id=session_id, user=admin_user, room__isnull=False
