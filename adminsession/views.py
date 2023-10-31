@@ -382,19 +382,25 @@ class ReportViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get', 'post'])
     def getStudentReport(self, request):
         admin_user = JWTAuthentication.authenticate_user(request)
+        output_buffer = BytesIO()
         if not admin_user:
-            return response_fun(0, "User Not Found")
-
+            response = HttpResponse(output_buffer, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="student_seating.pdf"'
+            return response
         session_id = request.data.get('session_id', None)
         if session_id is None:
-            return response_fun(0, "Session Id Not Found")
+            response = HttpResponse(output_buffer, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="student_seating.pdf"'
+            return response
 
         session_obj = admin_user.adminsession_sessionmodel_related.filter(
             pk=session_id
         ).first()
 
         if session_obj is None:
-            return response_fun(0, "Session Does Not Exists")
+            response = HttpResponse(output_buffer, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="student_seating.pdf"'
+            return response
 
         s3_client = boto3.client(
             's3',
@@ -418,7 +424,6 @@ class ReportViewSet(viewsets.ViewSet):
                 for page in range(len(pdf_reader.pages)):
                     pdf_writer.add_page(pdf_reader.pages[page])
 
-        output_buffer = BytesIO()
         pdf_writer.write(output_buffer)
         output_buffer.seek(0)
 
