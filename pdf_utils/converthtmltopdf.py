@@ -240,9 +240,9 @@ def getAttendanceString(students):
         {students[index][1]}
       </td>
       <td style="{cellStyle}">
-        {detained}
       </td>
       <td style="{cellStyle}">
+      {detained}
       </td>
     '''
 

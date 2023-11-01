@@ -329,7 +329,23 @@ class SessionViewSet(viewsets.ViewSet):
 class ReportViewSet(viewsets.ViewSet):
 
     @staticmethod
+    def checkDifferentStudent(students):
+        students = list(map(str, students))
+        if len(students[0]) != 13:
+            return True
+
+        curr_yr = students[0][:2]
+        branch_code = students[0][6:9]
+
+        for student in students:
+            if len(student) != 13 or student[:2] != curr_yr or student[6:9] != branch_code:
+                return True
+
+        return None
+
+    @staticmethod
     def getStudentCount(admin_user, session_id, section_name, room_number):
+        # No use for now
         student_rn_count = admin_user.seatingplan_seatingplanmodel_related.filter(
             section__section_name=section_name,
             room__room_number=room_number,
@@ -340,6 +356,7 @@ class ReportViewSet(viewsets.ViewSet):
 
     @staticmethod
     def getStudent_Min_Max(admin_user, session_id, section_name, room_number):
+        # No use for now
         student_rn_values = admin_user.seatingplan_seatingplanmodel_related.filter(
             section__section_name=section_name,
             room__room_number=room_number,
@@ -375,9 +392,10 @@ class ReportViewSet(viewsets.ViewSet):
                 obj = seatingMap[cols][rows]
                 if obj and obj.get("section_name") == section_name:
                     student.append(obj["student_roll"])
-        if student:
-            return student[0], student[-1], len(student)
-        return None, None, 0
+        if not student:
+            return None, None, 0
+        diff_rn = ReportViewSet.checkDifferentStudent(student)
+        return student[0], student[-1], len(student), diff_rn
 
     @action(detail=False, methods=['get', 'post'])
     def getStudentReport(self, request):
@@ -458,11 +476,11 @@ class ReportViewSet(viewsets.ViewSet):
                 final_data[yr][branch_name] = {}
             if section_name not in final_data[yr][branch_name]:
                 # min_rn, max_rn = ReportViewSet.getStudent_Min_Max(admin_user, session_id, section_name, room_number)
-                min_rn, max_rn, count = ReportViewSet.get_student_first_last(section_name, sm)
-                final_data[yr][branch_name][section_name] = [[room_number, min_rn, max_rn]]
+                min_rn, max_rn, count, isdiff = ReportViewSet.get_student_first_last(section_name, sm)
+                final_data[yr][branch_name][section_name] = [[room_number, min_rn, max_rn, isdiff]]
             else:
-                min_rn, max_rn, count = ReportViewSet.get_student_first_last(section_name, sm)
-                temp_data = [room_number, min_rn, max_rn]
+                min_rn, max_rn, count, isdiff = ReportViewSet.get_student_first_last(section_name, sm)
+                temp_data = [room_number, min_rn, max_rn, isdiff]
                 final_data[yr][branch_name][section_name].append(temp_data)
 
         def generate_excel(data):
@@ -473,12 +491,12 @@ class ReportViewSet(viewsets.ViewSet):
                     for sub_key, sub_value in inner_value.items():
                         excel_data.append([None, None, sub_key, None, None, None, None])
                         for sub_list in sub_value:
-                            first = str(sub_list[-2])[:2]
-                            last = str(sub_list[-1])[:2]
-                            isDifferent = None
-                            if first != last:
-                                isDifferent = True
-                            excel_data.append([None, None, None, *sub_list, isDifferent])
+                            #     first = str(sub_list[-2])[:2]
+                            #     last = str(sub_list[-1])[:2]
+                            #     isDifferent = None
+                            #     if first != last:
+                            #         isDifferent = True
+                            excel_data.append([None, None, None, *sub_list])
 
             # Create a pandas DataFrame from the data
             df = pd.DataFrame(excel_data, columns=["Year", "Branch", "Section", "Room_Number", "From", "To", "verify"])
@@ -526,25 +544,23 @@ class ReportViewSet(viewsets.ViewSet):
             # print(item)
             section_name, room_number, yr, branch_name, sm = item[0], item[1], item[2], item[3], item[4]
             if room_number in final_data:
-                min_rn, max_rn, count = ReportViewSet.get_student_first_last(section_name, sm)
-                # count = ReportViewSet.getStudentCount(admin_user, session_id, section_name, room_number)
-                final_data[room_number].append([min_rn, max_rn, section_name, count])
+                min_rn, max_rn, count, isdiff = ReportViewSet.get_student_first_last(section_name, sm)
+                final_data[room_number].append([min_rn, max_rn, section_name, count, isdiff])
             else:
-                min_rn, max_rn, count = ReportViewSet.get_student_first_last(section_name, sm)
-                # count = ReportViewSet.getStudentCount(admin_user, session_id, section_name, room_number)
-                final_data[room_number] = [[min_rn, max_rn, section_name, count]]
+                min_rn, max_rn, count, isdiff = ReportViewSet.get_student_first_last(section_name, sm)
+                final_data[room_number] = [[min_rn, max_rn, section_name, count, isdiff]]
 
         def generate_excel(data):
             excel_data = []
             for key, value in data.items():
                 excel_data.append([key, None, None, None, None, None])
                 for room_item in value:
-                    first = str(room_item[0])[:2]
-                    last = str(room_item[1])[:2]
-                    isDifferent = None
-                    if first != last:
-                        isDifferent = True
-                    excel_data.append([None, *room_item, isDifferent])
+                    # first = str(room_item[0])[:2]
+                    # last = str(room_item[1])[:2]
+                    # isDifferent = None
+                    # if first != last:
+                    #     isDifferent = True
+                    excel_data.append([None, *room_item])
 
             # Create a pandas DataFrame from the data
             df = pd.DataFrame(excel_data, columns=["ROOM", "FROM", "TO", "SECTION", "COUNT", "VERIFY"])

@@ -201,7 +201,9 @@ class SectionViewSet(viewsets.ViewSet):
             return response_fun(0, "User Not Found")
 
         branchId = request.data['branch_id']
-        sectionsOfBranch = admin_user.collageinfo_sectionmodel_related.filter(branch_id=branchId)
+        sectionsOfBranch = admin_user.collageinfo_sectionmodel_related.filter(
+            branch_id=branchId
+        ).order_by('section_name')
         serializer = SectionModelSerializerResponse(sectionsOfBranch, many=True)
         return response_fun(1, serializer.data)
 
