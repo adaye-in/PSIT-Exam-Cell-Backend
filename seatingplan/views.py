@@ -172,6 +172,7 @@ class seatingplanViewSets(viewsets.ViewSet):
                 return response_fun(1, "Seating Plan Updated Successfully")
 
         except Exception as e:
+            print(e)
             return response_fun(0, str(e))
 
     @action(detail=False, methods=['post'])
