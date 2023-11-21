@@ -60,7 +60,7 @@ class BranchViewSet(viewsets.ViewSet):
             return response_fun(0, {"message": "User does not exist."})
 
         # make sure that related field is in lowercase
-        branches = admin_user.collageinfo_branchmodel_related.all()
+        branches = admin_user.collageinfo_branchmodel_related.all().order_by('branch_name')
         serializer = BranchModelSerializerResponse(branches, many=True)
         return response_fun(1, serializer.data)
 
@@ -157,7 +157,7 @@ class SectionViewSet(viewsets.ViewSet):
             return response_fun(0, "User Not Found")
 
         # make sure that related field is in lowercase
-        sections = admin_user.collageinfo_sectionmodel_related.all()
+        sections = admin_user.collageinfo_sectionmodel_related.all().order_by('section_name')
         serializer = SectionModelSerializerResponse(sections, many=True)
         return response_fun(1, serializer.data)
 
@@ -255,7 +255,7 @@ class RoomViewSet(viewsets.ViewSet):
         if not admin_user:
             return response_fun(0, "User Not Found")
 
-        rooms = admin_user.collageinfo_roommodel_related.all()
+        rooms = admin_user.collageinfo_roommodel_related.all().order_by('room_number')
         serializer = RoomModelSerializerResponse(rooms, many=True)
         return response_fun(1, serializer.data)
 

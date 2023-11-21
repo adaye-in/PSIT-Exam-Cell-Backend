@@ -12,7 +12,11 @@ PaperSize = {
 }
 
 # Configuring pdfkit to point to our installation of wkhtmltopdf
-config = pdfkit.configuration(wkhtmltopdf=r"C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe")
+if DEPLOYMENT == 'DEV':
+    config = pdfkit.configuration(wkhtmltopdf=r"C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe")
+elif DEPLOYMENT == 'PROD':
+    config = pdfkit.configuration(wkhtmltopdf=r"/usr/bin/wkhtmltopdf")
+
 
 
 def addParentDiv(child):
