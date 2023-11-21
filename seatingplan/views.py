@@ -56,7 +56,7 @@ class sessionDetailsViewSets(viewsets.ViewSet):
 
         branch_obj = BranchModel.objects.filter(
             pk__in=branch_ids
-        )
+        ).order_by('branch_name')
         serializer = BranchModelSerializerResponse(branch_obj, many=True)
         return response_fun(1, serializer.data)
 
@@ -102,12 +102,12 @@ class sessionDetailsViewSets(viewsets.ViewSet):
                 session=session_id,
                 marked=True,
                 pk=room_id
-            )
+            ).order_by('room_number')
         else:
             session_room = admin_user.seatingplan_roomseatingmodel_related.filter(
                 session=session_id,
                 marked=marked
-            )
+            ).order_by('room_number')
 
         serializer = RoomSeatingSerializerResponse(session_room, many=True, sm=sm)
         return response_fun(1, serializer.data)
